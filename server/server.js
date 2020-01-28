@@ -1,53 +1,82 @@
-const mongoose=require('mongoose');
+const express=require('express');
+const bodyParser=require('body-parser');
+const {ObjectID}=require('mongodb');
 
-mongoose.Promise=global.Promise;
-mongoose.connect('mongodb://localhost:27017/TodoApp');
+const {mongoose}=require('./db/mongoose'); 
+const{Todo}=require('./models/todo');
+const {User}=require('./models/users');
 
-var Todo=mongoose.model('Todo',{
-    text:{
-       type: String,
-       required:true,
-       minlenght:1,
-       trim:true
-    }, 
-    completed:{
-        type:Boolean,
-        default:false
-    },
-    completedAt:{
-        type:Number,
-        default:null
+const app=express();
+
+app.use(bodyParser.json());
+app.post('/todos',(req,res)=>{
+     var todo=new Todo({
+         text:req.body.text
+     });
+     todo.save().then((doc)=>{
+         res.send(doc);
+         console.log(doc);
+     },(e)=>{
+         res.status(400).send(e);
+     });
+});
+app.post('/users',(req,res)=>{
+    var user=new User({
+        Email:req.body.text
+    });
+    user.save().then((doc)=>{
+        res.send(doc);
+        console.log(doc);
+    },(e)=>{
+        res.status(400).send(e);
+    });
+});
+
+app.get('/todos',(req,res)=>{
+    Todo.find().then((todos)=>{
+        res.send({todos});
+    },(e)=>{
+        res.status(400).send(e);
+    });
+});
+app.get('/users',(req,res)=>{
+    User.find().then((todos)=>{
+        res.send({todos});
+    },(e)=>{
+        res.status(400).send(e);
+    });
+});
+
+app.get('/todos/:id',(req,res)=>{
+    var id=req.params.id;
+    if(!ObjectID.isValid(id)){
+        return res.status(404).send();
     }
-
+    Todo.findById(id).then((todo)=>{
+        if(!todo){
+            return res.send("not found");
+        }
+        res.send(todo);
+    }).catch((e)=>{console.log(e)});
 });
-
-var newTodo= new Todo({
-    text:'study at 9',
-    // completed:true,
-    // completedAt:123
-});
-newTodo.save().then((doc)=>{
-    console.log(JSON.stringify(doc,undefined,2));
-},(e)=>{
-    console.log("error occured",e);
-});
-
-
-var User=mongoose.model('User',{
-    Email:{
-        type:String,
-        required:true,
-        trim:true,
-        minlenght:1
+app.delete('/todos/:id',(req,res)=>{
+    var id=req.params.id;
+    if(!ObjectID.isValid(id)){
+        return res.status(404).send();
     }
+    Todo.findByIdAndDelete(id).then((todo)=>{
+        if(!todo){
+            return res.send("not found");
+        }
+        res.send(todo);
+    }).catch((e)=>{console.log(e)});
 });
 
-var user =new User({
-    Email:'  ajaygupts12@gmail.com  '
+
+
+app.listen(5353,()=>{
+    console.log("server is listening");
 });
-user.save().then((doc)=>{
-    console.log(JSON.stringify(doc,undefined,2));
-},(e)=>{
-        console.log("Error",e);
-    }
-);
+
+
+
